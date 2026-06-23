@@ -15,7 +15,7 @@ async fn main() -> Result<()> {
     let workers = server_config.workers;
     let bind_address = server_config.bind_address();
 
-    HttpServer::new(|| App::new().route("/", get().to(|| async { "Hello, World from cloudf!" })))
+    HttpServer::new(|| App::new().route("/", get().to(|| async { "Hello, World from cloud!" })))
         .workers(workers)
         .bind(bind_address)?
         .run()
