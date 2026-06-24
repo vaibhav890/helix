@@ -1,0 +1,77 @@
+services:
+  postgres:
+    image: postgres:18
+    container_name: postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    ports:
+      - "${POSTGRES_PORT}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql
+    networks:
+      - dev
+
+  redis:
+    image: redis:8
+    container_name: redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    ports:
+      - "${REDIS_PORT}:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - dev
+
+  cloudflared_backend:
+    image: cloudflare/cloudflared:latest
+    container_name: cloudflare
+    command: tunnel run
+    restart: unless-stopped
+    environment:
+      TUNNEL_TOKEN: ${TUNNEL_TOKEN}
+    networks:
+      - dev
+
+  auth:
+    image: helix/auth:dev
+    container_name: auth
+
+    build:
+      context: ./auth
+      dockerfile: Dockerfile.dev
+
+    restart: unless-stopped
+
+    ports:
+      - "${APP_PORT}:8080"
+
+    volumes:
+      - ./auth:/app
+      - auth_cargo_registry:/usr/local/cargo/registry
+      - auth_cargo_target:/app/target
+
+    environment:
+      RUST_LOG: ${RUST_LOG}
+      DATABASE_URL: ${DATABASE_URL}
+      REDIS_URL: ${REDIS_URL}
+
+    depends_on:
+      - postgres
+      - redis
+
+    networks:
+      - dev
+
+networks:
+  dev:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  redis_data:
+  auth_cargo_registry:
+  auth_cargo_target:
